@@ -281,7 +281,7 @@ def get_generic_dataset(dataset_fp, tokenizer, device,
     with open(dataset_fp) as f:
         csv_reader = csv.reader(f, delimiter="\t")
         for i, row in enumerate(tqdm(csv_reader, ascii=True)):
-            if row:
+            if row and len(row)>=2 and len(row[1])>0:
                 label = row[0]
                 text = row[1]
 
