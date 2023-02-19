@@ -84,7 +84,7 @@ DISCRIMINATOR_MODELS_PARAMS = {
         "default_class": 3,
         "pretrained_model": "gpt2-medium",
     },
-    "ideology":{
+    "ideology": {
         "url": "https://github.com/dsobhani8/PPLM_unbiased/blob/master/paper_code/discrim_models/generic_classifier_head_epoch_5.pt",
         "class_size": 2,
         "embed_size": 1024,
@@ -890,7 +890,7 @@ if __name__ == '__main__':
         "-D",
         type=str,
         default=None,
-        choices=("clickbait", "sentiment", "toxicity", "generic"),
+        choices=("clickbait", "sentiment", "toxicity", "generic", "ideology"),
         help="Discriminator to use",
     )
     parser.add_argument('--discrim_weights', type=str, default=None,
