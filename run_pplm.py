@@ -84,6 +84,14 @@ DISCRIMINATOR_MODELS_PARAMS = {
         "default_class": 3,
         "pretrained_model": "gpt2-medium",
     },
+    "ideology":{
+        "url": "https://github.com/dsobhani8/PPLM_unbiased/blob/master/paper_code/discrim_models/generic_classifier_head_epoch_5.pt",
+        "class_size": 2,
+        "embed_size": 1024,
+        "class_vocab": {"neutral": 0, "biased": 1},
+        "default_class": 0,
+        "pretrained_model": "gpt2-medium",
+    }
 }
 
 
