@@ -231,7 +231,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=10, metavar='N',
                         help='Number of training epochs')
     parser.add_argument('--save-model', action='store_true', help='whether to save the model')
-    parser.add_argument('--dataset-label', type=str, default='SST',choices=('SST', 'clickbait', 'toxic'))
+    parser.add_argument('--dataset-label', type=str, default='SST',choices=('SST', 'clickbait', 'toxic', 'ideology'))
     args = parser.parse_args()
 
     batch_size = args.batch_size
