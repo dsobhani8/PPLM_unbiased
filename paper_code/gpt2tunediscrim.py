@@ -332,25 +332,44 @@ def main():
 
     elif args.dataset_label == 'ideology':
         # data = pickle.load(open("/home/gilocal/lab/exp/language/datasets/clickbait/clickbait.p", "r"))
-        with open("/content/combined_df.csv") as f:
-            data = []
-            for d in f:
-                data.append(eval(d))
+        # with open("/content/combined_df.csv") as f:
+        #     data = []
+        #     for d in f:
+        #         data.append(eval(d))
+        #
+        # x = []
+        # y = []
+        # for d in data:
+        #     try:
+        #         # seq = tokenizer.encode("Apple's iOS 9 'App thinning' feature will give your phone's storage a boost")
+        #         seq = tokenizer.encode(d["text"])
+        #
+        #         device = 'cuda'
+        #         if(len(seq)<100):
+        #             seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
+        #         else:
+        #             continue
+        #         x.append(seq)
+        #         y.append(int(np.sum(d['label'])>0))
+        #     except:
+        #         pass
+        #
+        import pandas as pd
+
+        df = pd.read_csv('/content/combined_df.csv')
 
         x = []
         y = []
-        for d in data:
+        for index, row in df.iterrows():
             try:
-                # seq = tokenizer.encode("Apple's iOS 9 'App thinning' feature will give your phone's storage a boost")
-                seq = tokenizer.encode(d["text"])
-
+                seq = tokenizer.encode(row["text"])
                 device = 'cuda'
-                if(len(seq)<100):
+                if (len(seq) < 100):
                     seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
                 else:
                     continue
                 x.append(seq)
-                y.append(int(np.sum(d['label'])>0))
+                y.append(int(row['label'] > 0))
             except:
                 pass
 
