@@ -38,9 +38,9 @@ sys.path.insert(1, lab_root)
 from pytorch_pretrained_bert import GPT2LMHeadModel, GPT2Tokenizer
 from torch.autograd import Variable
 
-tokenizer = GPT2Tokenizer.from_pretrained('gpt-2_pt_models/345M/')
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-model = GPT2LMHeadModel.from_pretrained('gpt-2_pt_models/345M/')
+model = GPT2LMHeadModel.from_pretrained("gpt2")
 
 
 class ClassificationHead(torch.nn.Module):
@@ -110,6 +110,7 @@ class Discriminator2(torch.nn.Module):
         x = F.log_softmax(x, dim=-1)
         return x
 
+
 class Discriminator2mean(torch.nn.Module):
     def __init__(self, class_size=5, embed_size=1024):
         super(Discriminator2mean, self).__init__()
@@ -126,22 +127,53 @@ class Discriminator2mean(torch.nn.Module):
         pass
         self.classifierhead.train()
 
+    # def forward(self, x):
+    #         mask_src = 1 - x.eq(0).unsqueeze(1).type(torch.FloatTensor).cuda().detach()
+    #         mask_src = mask_src.repeat(1, self.embed_size, 1)
+    #         x = model.forward_embed(x)
+    #         hidden, x = model.forward_transformer_embed(x)
+    #         #  Hidden has shape batch_size x length x embed-di
+    #         hidden_shape = hidden.shape
+    #         mask_src_shape = mask_src.shape
+
+    #         print(hidden_shape)
+    #         print(mask_src_shape)
+    # # Check if the sizes of the two tensors are the same
+    #         if hidden_shape[1] != mask_src_shape[1]:
+    #           print("The sizes of the two tensors do not match. Please check the shapes.")
+    #         hidden = hidden.permute(0, 2, 1)
+    #         _, _, batch_length = hidden.shape
+    #         hidden = hidden * mask_src / torch.sum(mask_src, dim=-1).unsqueeze(2).repeat(1, self.embed_size, batch_length)
+    #         #
+    #         hidden = hidden.permute(0, 2, 1)
+    #         x = torch.sum(hidden, dim=1)/(torch.sum(mask_src, dim=-1).detach() + 1e-10)
+    #         x = self.classifierhead(x)
+    #         x = F.log_softmax(x, dim=-1)
+    #         return x
     def forward(self, x):
         mask_src = 1 - x.eq(0).unsqueeze(1).type(torch.FloatTensor).cuda().detach()
         mask_src = mask_src.repeat(1, self.embed_size, 1)
         x = model.forward_embed(x)
         hidden, x = model.forward_transformer_embed(x)
-        #  Hidden has shape batch_size x length x embed-dim
+        #  Hidden has shape batch_size x length x embed-di
+        hidden_shape = hidden.shape
+        mask_src_shape = mask_src.shape
 
+        print(hidden_shape)
+        print(mask_src_shape)
+        # Check if the sizes of the two tensors are the same
+        if hidden_shape[1] != mask_src_shape[1]:
+            mask_src = mask_src.transpose(-1, -2)
         hidden = hidden.permute(0, 2, 1)
         _, _, batch_length = hidden.shape
-        hidden = hidden * mask_src  # / torch.sum(mask_src, dim=-1).unsqueeze(2).repeat(1, 1, batch_length)
+        hidden = hidden * mask_src / torch.sum(mask_src, dim=-1).unsqueeze(2).repeat(1, self.embed_size, batch_length)
         #
         hidden = hidden.permute(0, 2, 1)
-        x = torch.sum(hidden, dim=1)/(torch.sum(mask_src, dim=-1).detach() + 1e-10)
+        x = torch.sum(hidden, dim=1) / (torch.sum(mask_src, dim=-1).detach() + 1e-10)
         x = self.classifierhead(x)
         x = F.log_softmax(x, dim=-1)
         return x
+
 
 class Dataset(data.Dataset):
     def __init__(self, X, y):
@@ -164,10 +196,10 @@ def collate_fn(data):
     def merge(sequences):
         lengths = [len(seq) for seq in sequences]
 
-        padded_seqs = torch.zeros(len(sequences), max(lengths)).long().cuda()  # padding index 0
+        padded_seqs = torch.zeros(len(sequences), max(lengths)).long()  # padding index 0
         for i, seq in enumerate(sequences):
             end = lengths[i]
-            padded_seqs[i, :end] = seq[:end]
+            padded_seqs[i, :end] = torch.tensor(seq[:end]).long()
         return padded_seqs, lengths
 
     data.sort(key=lambda x: len(x["X"]), reverse=True)  # sort by source seq
@@ -231,7 +263,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=10, metavar='N',
                         help='Number of training epochs')
     parser.add_argument('--save-model', action='store_true', help='whether to save the model')
-    parser.add_argument('--dataset-label', type=str, default='SST',choices=('SST', 'clickbait', 'toxic', 'ideology'))
+    parser.add_argument('--dataset-label', type=str, default='SST', choices=('SST', 'clickbait', 'toxic', 'ideology'))
     args = parser.parse_args()
 
     batch_size = args.batch_size
@@ -312,12 +344,12 @@ def main():
                 seq = tokenizer.encode(d["text"])
 
                 device = 'cuda'
-                if(len(seq)<100):
+                if (len(seq) < 100):
                     seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
                 else:
                     continue
                 x.append(seq)
-                y.append(int(np.sum(d['label'])>0))
+                y.append(int(np.sum(d['label']) > 0))
             except:
                 pass
 
@@ -331,50 +363,34 @@ def main():
 
 
     elif args.dataset_label == 'ideology':
-        # data = pickle.load(open("/home/gilocal/lab/exp/language/datasets/clickbait/clickbait.p", "r"))
-        # with open("/content/combined_df.csv") as f:
-        #     data = []
-        #     for d in f:
-        #         data.append(eval(d))
-        #
-        # x = []
-        # y = []
-        # for d in data:
-        #     try:
-        #         # seq = tokenizer.encode("Apple's iOS 9 'App thinning' feature will give your phone's storage a boost")
-        #         seq = tokenizer.encode(d["text"])
-        #
-        #         device = 'cuda'
-        #         if(len(seq)<100):
-        #             seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
-        #         else:
-        #             continue
-        #         x.append(seq)
-        #         y.append(int(np.sum(d['label'])>0))
-        #     except:
-        #         pass
-        #
+
         import pandas as pd
 
         df = pd.read_csv('/content/combined_df.csv')
 
         x = []
         y = []
-        for index, row in df.iterrows():
+        text = df['text'].tolist()
+        label = df['label'].tolist()
+
+        for i in text:
+            # print(i)
             try:
-                seq = tokenizer.encode(row["text"])
+                seq = tokenizer.encode(i)
+                # print(seq)
                 device = 'cuda'
-                if (len(seq) < 100):
-                    seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
-                else:
-                    continue
+                # if (len(seq) < 100):
+                #     seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
+                # else:
+                #     continue
+                # print(seq)
                 x.append(seq)
-                y.append(int(row['label'] > 0))
+                # y.append(int(row['label'] > 0))
             except:
                 pass
 
-        dataset = Dataset(x, y)
-        print(dataset)
+        dataset = Dataset(x, label)
+        print(dataset[1])
         print(len(dataset))
         train_size = int(0.9 * len(dataset))
         test_size = len(dataset) - train_size
