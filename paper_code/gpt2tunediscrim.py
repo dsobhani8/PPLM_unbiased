@@ -329,37 +329,37 @@ def main():
         dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
         discriminator = Discriminator2mean(class_size=2).to(device)
 
-    elif args.dataset_label == 'toxic':
-        # data = pickle.load(open("/home/gilocal/lab/exp/language/datasets/clickbait/clickbait.p", "r"))
-        with open("datasets/toxic/toxic_train.txt") as f:
-            data = []
-            for d in f:
-                data.append(eval(d))
-
-        x = []
-        y = []
-        for d in data:
-            try:
-                # seq = tokenizer.encode("Apple's iOS 9 'App thinning' feature will give your phone's storage a boost")
-                seq = tokenizer.encode(d["text"])
-
-                device = 'cuda'
-                if (len(seq) < 100):
-                    seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
-                else:
-                    continue
-                x.append(seq)
-                y.append(int(np.sum(d['label']) > 0))
-            except:
-                pass
-
-        dataset = Dataset(x, y)
-        print(dataset)
-        print(len(dataset))
-        train_size = int(0.9 * len(dataset))
-        test_size = len(dataset) - train_size
-        dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
-        discriminator = Discriminator2mean(class_size=2).to(device)
+    # elif args.dataset_label == 'toxic':
+    #     # data = pickle.load(open("/home/gilocal/lab/exp/language/datasets/clickbait/clickbait.p", "r"))
+    #     with open("datasets/toxic/toxic_train.txt") as f:
+    #         data = []
+    #         for d in f:
+    #             data.append(eval(d))
+    #
+    #     x = []
+    #     y = []
+    #     for d in data:
+    #         try:
+    #             # seq = tokenizer.encode("Apple's iOS 9 'App thinning' feature will give your phone's storage a boost")
+    #             seq = tokenizer.encode(d["text"])
+    #
+    #             device = 'cuda'
+    #             if (len(seq) < 100):
+    #                 seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
+    #             else:
+    #                 continue
+    #             x.append(seq)
+    #             y.append(int(np.sum(d['label']) > 0))
+    #         except:
+    #             pass
+    #
+    #     dataset = Dataset(x, y)
+    #     print(dataset)
+    #     print(len(dataset))
+    #     train_size = int(0.9 * len(dataset))
+    #     test_size = len(dataset) - train_size
+    #     dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+    #     discriminator = Discriminator2mean(class_size=2).to(device)
 
 
     elif args.dataset_label == 'ideology':
@@ -379,10 +379,10 @@ def main():
                 seq = tokenizer.encode(i)
                 # print(seq)
                 device = 'cuda'
-                # if (len(seq) < 100):
-                #     seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
-                # else:
-                #     continue
+                if (len(seq) < 100):
+                    seq = torch.tensor([50256] + seq)
+                else:
+                    continue
                 # print(seq)
                 x.append(seq)
                 # y.append(int(row['label'] > 0))
