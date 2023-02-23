@@ -163,7 +163,7 @@ def perturb_past(
         decay_mask = 1.0
 
     # TODO fix this comment (SUMANTH)
-    # Generate a mask is gradient perturbated is based on a past window
+    # Generate a mask is gradient perturbated is based on a past window #
     _, _, _, curr_length, _ = past[0].shape
 
     if curr_length > window_length and window_length > 0:
