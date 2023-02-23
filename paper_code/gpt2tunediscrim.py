@@ -34,6 +34,8 @@ np.random.seed(0)
 
 lab_root = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', '..')
 sys.path.insert(1, lab_root)
+import sys
+sys.path.append('/content/PPLM_unbiased/paper_code/pytorch_pretrained_bert')
 
 from pytorch_pretrained_bert import GPT2LMHeadModel, GPT2Tokenizer
 from torch.autograd import Variable
@@ -87,7 +89,7 @@ class Discriminator(torch.nn.Module):
 
 
 class Discriminator2(torch.nn.Module):
-    def __init__(self, class_size=5, embed_size=1024):
+    def __init__(self, class_size=5, embed_size=768):
         super(Discriminator2, self).__init__()
         self.classifierhead = ClassificationHead(class_size=class_size, embed_size=embed_size)
         self.model = model
@@ -112,7 +114,7 @@ class Discriminator2(torch.nn.Module):
 
 
 class Discriminator2mean(torch.nn.Module):
-    def __init__(self, class_size=5, embed_size=1024):
+    def __init__(self, class_size=5, embed_size=768):
         super(Discriminator2mean, self).__init__()
         self.classifierhead = ClassificationHead(class_size=class_size, embed_size=embed_size)
         self.model = model
@@ -127,53 +129,23 @@ class Discriminator2mean(torch.nn.Module):
         pass
         self.classifierhead.train()
 
-    # def forward(self, x):
-    #         mask_src = 1 - x.eq(0).unsqueeze(1).type(torch.FloatTensor).cuda().detach()
-    #         mask_src = mask_src.repeat(1, self.embed_size, 1)
-    #         x = model.forward_embed(x)
-    #         hidden, x = model.forward_transformer_embed(x)
-    #         #  Hidden has shape batch_size x length x embed-di
-    #         hidden_shape = hidden.shape
-    #         mask_src_shape = mask_src.shape
 
-    #         print(hidden_shape)
-    #         print(mask_src_shape)
-    # # Check if the sizes of the two tensors are the same
-    #         if hidden_shape[1] != mask_src_shape[1]:
-    #           print("The sizes of the two tensors do not match. Please check the shapes.")
-    #         hidden = hidden.permute(0, 2, 1)
-    #         _, _, batch_length = hidden.shape
-    #         hidden = hidden * mask_src / torch.sum(mask_src, dim=-1).unsqueeze(2).repeat(1, self.embed_size, batch_length)
-    #         #
-    #         hidden = hidden.permute(0, 2, 1)
-    #         x = torch.sum(hidden, dim=1)/(torch.sum(mask_src, dim=-1).detach() + 1e-10)
-    #         x = self.classifierhead(x)
-    #         x = F.log_softmax(x, dim=-1)
-    #         return x
     def forward(self, x):
         mask_src = 1 - x.eq(0).unsqueeze(1).type(torch.FloatTensor).cuda().detach()
         mask_src = mask_src.repeat(1, self.embed_size, 1)
         x = model.forward_embed(x)
         hidden, x = model.forward_transformer_embed(x)
-        #  Hidden has shape batch_size x length x embed-di
-        hidden_shape = hidden.shape
-        mask_src_shape = mask_src.shape
+        #  Hidden has shape batch_size x length x embed-dim
 
-        print(hidden_shape)
-        print(mask_src_shape)
-        # Check if the sizes of the two tensors are the same
-        if hidden_shape[1] != mask_src_shape[1]:
-            mask_src = mask_src.transpose(-1, -2)
         hidden = hidden.permute(0, 2, 1)
         _, _, batch_length = hidden.shape
-        hidden = hidden * mask_src / torch.sum(mask_src, dim=-1).unsqueeze(2).repeat(1, self.embed_size, batch_length)
+        hidden = hidden * mask_src  # / torch.sum(mask_src, dim=-1).unsqueeze(2).repeat(1, 1, batch_length)
         #
         hidden = hidden.permute(0, 2, 1)
-        x = torch.sum(hidden, dim=1) / (torch.sum(mask_src, dim=-1).detach() + 1e-10)
+        x = torch.sum(hidden, dim=1)/(torch.sum(mask_src, dim=-1).detach() + 1e-10)
         x = self.classifierhead(x)
         x = F.log_softmax(x, dim=-1)
         return x
-
 
 class Dataset(data.Dataset):
     def __init__(self, X, y):
@@ -329,37 +301,37 @@ def main():
         dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
         discriminator = Discriminator2mean(class_size=2).to(device)
 
-    # elif args.dataset_label == 'toxic':
-    #     # data = pickle.load(open("/home/gilocal/lab/exp/language/datasets/clickbait/clickbait.p", "r"))
-    #     with open("datasets/toxic/toxic_train.txt") as f:
-    #         data = []
-    #         for d in f:
-    #             data.append(eval(d))
-    #
-    #     x = []
-    #     y = []
-    #     for d in data:
-    #         try:
-    #             # seq = tokenizer.encode("Apple's iOS 9 'App thinning' feature will give your phone's storage a boost")
-    #             seq = tokenizer.encode(d["text"])
-    #
-    #             device = 'cuda'
-    #             if (len(seq) < 100):
-    #                 seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
-    #             else:
-    #                 continue
-    #             x.append(seq)
-    #             y.append(int(np.sum(d['label']) > 0))
-    #         except:
-    #             pass
-    #
-    #     dataset = Dataset(x, y)
-    #     print(dataset)
-    #     print(len(dataset))
-    #     train_size = int(0.9 * len(dataset))
-    #     test_size = len(dataset) - train_size
-    #     dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
-    #     discriminator = Discriminator2mean(class_size=2).to(device)
+    elif args.dataset_label == 'toxic':
+        # data = pickle.load(open("/home/gilocal/lab/exp/language/datasets/clickbait/clickbait.p", "r"))
+        with open("datasets/toxic/toxic_train.txt") as f:
+            data = []
+            for d in f:
+                data.append(eval(d))
+
+        x = []
+        y = []
+        for d in data:
+            try:
+                # seq = tokenizer.encode("Apple's iOS 9 'App thinning' feature will give your phone's storage a boost")
+                seq = tokenizer.encode(d["text"])
+
+                device = 'cuda'
+                if (len(seq) < 100):
+                    seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
+                else:
+                    continue
+                x.append(seq)
+                y.append(int(np.sum(d['label']) > 0))
+            except:
+                pass
+
+        dataset = Dataset(x, y)
+        print(dataset)
+        print(len(dataset))
+        train_size = int(0.9 * len(dataset))
+        test_size = len(dataset) - train_size
+        dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+        discriminator = Discriminator2mean(class_size=2).to(device)
 
 
     elif args.dataset_label == 'ideology':
@@ -379,10 +351,10 @@ def main():
                 seq = tokenizer.encode(i)
                 # print(seq)
                 device = 'cuda'
-                if (len(seq) < 100):
-                    seq = torch.tensor([50256] + seq)
-                else:
-                    continue
+                # if (len(seq) < 100):
+                #     seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
+                # else:
+                #     continue
                 # print(seq)
                 x.append(seq)
                 # y.append(int(row['label'] > 0))
@@ -409,18 +381,46 @@ def main():
         seq = tokenizer.encode("This is incredible! I love it, this is the best chicken I have ever had.")
         seq = torch.tensor([seq], device=device, dtype=torch.long)
         print(discriminator(seq))
+        if not os.path.exists('/content/discrim_models'):
+          os.makedirs('/content/discrim_models')
 
         if (args.save_model):
             torch.save(discriminator.state_dict(),
-                       "discrim_models/{}_mean_lin_discriminator_{}.pt".format(args.dataset_label, epoch))
+                      "/content/discrim_models/{}_mean_lin_discriminator_{}.pt".format(args.dataset_label, epoch))
             torch.save(discriminator.get_classifier().state_dict(),
-                       "discrim_models/{}_classifierhead.pt".format(args.dataset_label))
+                      "/content/discrim_models/{}_classifierhead.pt".format(args.dataset_label))
 
+        # if (args.save_model):
+        #     torch.save(discriminator.state_dict(),
+        #                "discrim_models/{}_mean_lin_discriminator_{}.pt".format(args.dataset_label, epoch))
+        #     torch.save(discriminator.get_classifier().state_dict(),
+        #                "discrim_models/{}_classifierhead.pt".format(args.dataset_label))
+        # if (args.save_model):
+        #     torch.save(discriminator.state_dict(),
+        #               "/content/discrim_models/{}_mean_lin_discriminator_{}.pt".format(args.dataset_label, epoch))
+        #     torch.save(discriminator.get_classifier().state_dict(),
+        #               "/content/discrim_models/{}_classifierhead.pt".format(args.dataset_label))
     seq = tokenizer.encode("This is incredible! I love it, this is the best chicken I have ever had.")
     seq = torch.tensor([seq], device=device, dtype=torch.long)
     print(discriminator(seq))
+    # for epoch in range(args.epochs):
+    #     train_epoch(discriminator=discriminator, data_loader=data_loader, args=args, device=device, epoch=epoch)
+    #     test_epoch(data_loader=test_loader, discriminator=discriminator, args=args)
+    #     seq = tokenizer.encode("This is incredible! I love it, this is the best chicken I have ever had.")
+    #     seq = torch.tensor([seq], device=device, dtype=torch.long)
+    #     print(discriminator(seq))
+
+    #     if (args.save_model):
+    #         torch.save(discriminator.state_dict(),
+    #                   "ideology_classifier.pt")
+    #         torch.save(discriminator.get_classifier().state_dict(),
+    #                   "classifierhead.pt")
+
+    # seq = tokenizer.encode("This is incredible! I love it, this is the best chicken I have ever had.")
+    # seq = torch.tensor([seq], device=device, dtype=torch.long)
+    # print(discriminator(seq))
+
 
 
 if __name__ == '__main__':
     main()
-
