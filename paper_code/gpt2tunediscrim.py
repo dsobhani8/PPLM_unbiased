@@ -362,7 +362,7 @@ def main():
                 pass
 
         dataset = Dataset(x, label)
-        print(dataset[1])
+        #print(dataset[1])
         print(len(dataset))
         train_size = int(0.9 * len(dataset))
         test_size = len(dataset) - train_size
