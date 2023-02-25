@@ -85,9 +85,9 @@ DISCRIMINATOR_MODELS_PARAMS = {
         "pretrained_model": "gpt2-medium",
     },
     "ideology": {
-        "url": "https://github.com/dsobhani8/PPLM_unbiased/blob/master/paper_code/discrim_models/ideology_classifierhead.pt",
+        "url": "/content/ideology_classifierhead.pt",
         "class_size": 2,
-        "embed_size": 1024,
+        "embed_size": 768,
         "class_vocab": {"neutral": 0, "biased": 1},
         "default_class": 0,
         "pretrained_model": "gpt2-medium",
@@ -230,16 +230,42 @@ def perturb_past(
             # TODO why we need to do this assignment and not just using unpert_past? (Sumanth)
             curr_unpert_past = unpert_past
             curr_probs = torch.unsqueeze(probs, dim=1)
+            # print(curr_probs.shape)
             wte = model.resize_token_embeddings()
+            # Create a new tensor with the desired shape.
+            new_wte = torch.zeros((50257, 768))
+
+            # Resize the existing tensor to match the desired shape.
+            resized_wte = torch.nn.functional.interpolate(wte.weight.data.unsqueeze(0).unsqueeze(0),
+                                                          size=(50257, 768, wte.weight.size(1)), mode='bilinear',
+                                                          align_corners=False).squeeze(0)
+
+            # Copy the resized tensor to the new tensor.
+            new_wte[:, :resized_wte.shape[1]] = resized_wte
+
+            # Replace the embedding layer with the new tensor.
+            model.resize_token_embeddings(new_wte.shape[0])
+            # Create a new weight tensor of the same shape as the new embedding layer.
+            new_weight = torch.nn.Parameter(torch.zeros_like(model.transformer.wte.weight))
+            # Copy the data from the original weight tensor into the corresponding subset of the new tensor.
+            new_weight[:new_wte.shape[0], :new_wte.shape[1]] = new_wte
+            # Assign the new tensor to the embedding layer weights.
+            model.transformer.wte.weight = new_weight
+
+            print(wte.weight.data.shape)
             for _ in range(horizon_length):
                 inputs_embeds = torch.matmul(curr_probs, wte.weight.data)
+                print(inputs_embeds.shape)
                 _, curr_unpert_past, curr_all_hidden = model(
                     past=curr_unpert_past,
                     inputs_embeds=inputs_embeds
                 )
                 curr_hidden = curr_all_hidden[-1]
+                print(curr_hidden.shape)
+
                 new_accumulated_hidden = new_accumulated_hidden + torch.sum(
                     curr_hidden, dim=1)
+                print(new_accumulated_hidden.shape)
 
             prediction = classifier(new_accumulated_hidden /
                                     (curr_length + 1 + horizon_length))
@@ -732,13 +758,15 @@ def run_pplm_example(
             pretrained_model = discriminator_pretrained_model
             if verbosity_level >= REGULAR:
                 print("discrim = {}, pretrained_model set "
-                "to discriminator's = {}".format(discrim, pretrained_model))
+                      "to discriminator's = {}".format(discrim, pretrained_model))
 
     # load pretrained model
     model = GPT2LMHeadModel.from_pretrained(
         pretrained_model,
-        output_hidden_states=True
+        output_hidden_states=True,
     )
+    # model.resize_token_embeddings(768)
+
     model.to(device)
     model.eval()
 
