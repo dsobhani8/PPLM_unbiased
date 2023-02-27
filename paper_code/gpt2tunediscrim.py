@@ -40,9 +40,9 @@ sys.path.append('/content/PPLM_unbiased/paper_code/pytorch_pretrained_bert')
 from pytorch_pretrained_bert import GPT2LMHeadModel, GPT2Tokenizer
 from torch.autograd import Variable
 
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2-medium")
 
-model = GPT2LMHeadModel.from_pretrained("gpt2")
+model = GPT2LMHeadModel.from_pretrained("gpt2-medium")
 
 
 class ClassificationHead(torch.nn.Module):
@@ -89,7 +89,7 @@ class Discriminator(torch.nn.Module):
 
 
 class Discriminator2(torch.nn.Module):
-    def __init__(self, class_size=5, embed_size=768):
+    def __init__(self, class_size=5, embed_size=1024):
         super(Discriminator2, self).__init__()
         self.classifierhead = ClassificationHead(class_size=class_size, embed_size=embed_size)
         self.model = model
@@ -114,7 +114,7 @@ class Discriminator2(torch.nn.Module):
 
 
 class Discriminator2mean(torch.nn.Module):
-    def __init__(self, class_size=5, embed_size=768):
+    def __init__(self, class_size=5, embed_size=1024):
         super(Discriminator2mean, self).__init__()
         self.classifierhead = ClassificationHead(class_size=class_size, embed_size=embed_size)
         self.model = model
@@ -351,10 +351,10 @@ def main():
                 seq = tokenizer.encode(i)
                 # print(seq)
                 device = 'cuda'
-                # if (len(seq) < 100):
-                #     seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
-                # else:
-                #     continue
+                if (len(seq) < 100):
+                    seq = torch.tensor([50256] + seq, device=device, dtype=torch.long)
+                else:
+                    continue
                 # print(seq)
                 x.append(seq)
                 # y.append(int(row['label'] > 0))
