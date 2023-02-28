@@ -87,7 +87,7 @@ DISCRIMINATOR_MODELS_PARAMS = {
     "ideology": {
         "url": "/content/ideology_classifierhead.pt",
         "class_size": 2,
-        "embed_size": 768,
+        "embed_size": 1024,
         "class_vocab": {"neutral": 0, "biased": 1},
         "default_class": 0,
         "pretrained_model": "gpt2-medium",
@@ -233,7 +233,6 @@ def perturb_past(
             wte = model.resize_token_embeddings()
             for _ in range(horizon_length):
                 inputs_embeds = torch.matmul(curr_probs, wte.weight.data)
-                print(inputs_embeds.shape)
                 _, curr_unpert_past, curr_all_hidden = model(
                     past=curr_unpert_past,
                     inputs_embeds=inputs_embeds
