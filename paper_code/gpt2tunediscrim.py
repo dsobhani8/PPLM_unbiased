@@ -40,9 +40,9 @@ sys.path.append('/content/PPLM_unbiased/paper_code/pytorch_pretrained_bert')
 from pytorch_pretrained_bert import GPT2LMHeadModel, GPT2Tokenizer
 from torch.autograd import Variable
 
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2-medium")
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-model = GPT2LMHeadModel.from_pretrained("gpt2-medium")
+model = GPT2LMHeadModel.from_pretrained("gpt2")
 
 
 class ClassificationHead(torch.nn.Module):
